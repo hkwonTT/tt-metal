@@ -11,6 +11,8 @@
 #include "ttnn/decorators.hpp"
 #include "ttnn/device.hpp"
 #include "ttnn/distributed/types.hpp"
+#include "ttnn/distributed/distributed_tensor.hpp"
+#include "ttnn/global_semaphore.hpp"
 #include "ttnn/operations/ccl/all_gather/all_gather.hpp"
 #include "ttnn/operations/ccl/ccl_host_types.hpp"
 #include "ttnn/operations/ccl/reduce_scatter/reduce_scatter.hpp"
@@ -44,6 +46,7 @@
 #include "ttnn/tensor/shape/shape.hpp"
 #include "ttnn/tensor/tensor.hpp"
 #include "ttnn/tensor/types.hpp"
+#include "ttnn/tensor/xtensor/partition.hpp"
 #include "ttnn/types.hpp"
 
 namespace ttnn {

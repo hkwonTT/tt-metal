@@ -15,7 +15,7 @@ struct ExecutePointToPoint {
         const ttnn::Tensor& input_tensor,
         const MeshCoordinate& send_coord,
         const MeshCoordinate& receive_coord,
-        const ccl::Topology topology,
+        const ttnn::ccl::Topology topology,
         const GlobalSemaphore& receiver_semaphore);
 };
 }  // namespace operations::point_to_point

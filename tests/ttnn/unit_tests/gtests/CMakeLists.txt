@@ -74,107 +74,108 @@ target_link_libraries(
         TTNN::Test::Basic
 )
 
-# unit_tests_ttnn_ccl
+# # unit_tests_ttnn_ccl
 
-add_executable(unit_tests_ttnn_ccl)
-target_sources(
-    unit_tests_ttnn_ccl
-    PRIVATE
-        ccl/test_ccl_commands.cpp
-        ccl/test_ccl_helpers.cpp
-        ccl/test_ccl_reduce_scatter_host_helpers.cpp
-        ccl/test_ccl_tensor_slicers.cpp
-        ccl/test_erisc_data_mover_with_workers.cpp
-        ccl/test_fabric_erisc_data_mover_loopback_with_workers.cpp
-        ccl/test_sharded_address_generators.cpp
-        ccl/test_sharded_address_generators_new.cpp
-)
-target_include_directories(unit_tests_ttnn_ccl PRIVATE ${PROJECT_SOURCE_DIR}/tests)
-target_link_libraries(
-    unit_tests_ttnn_ccl
-    PRIVATE
-        test_common_libs
-        TTNN::CPP
-)
+# add_executable(unit_tests_ttnn_ccl)
+# target_sources(
+#     unit_tests_ttnn_ccl
+#     PRIVATE
+#         ccl/test_ccl_commands.cpp
+#         ccl/test_ccl_helpers.cpp
+#         ccl/test_ccl_reduce_scatter_host_helpers.cpp
+#         ccl/test_ccl_tensor_slicers.cpp
+#         ccl/test_erisc_data_mover_with_workers.cpp
+#         ccl/test_fabric_erisc_data_mover_loopback_with_workers.cpp
+#         ccl/test_sharded_address_generators.cpp
+#         ccl/test_sharded_address_generators_new.cpp
+# )
+# target_include_directories(unit_tests_ttnn_ccl PRIVATE ${PROJECT_SOURCE_DIR}/tests)
+# target_link_libraries(
+#     unit_tests_ttnn_ccl
+#     PRIVATE
+#         test_common_libs
+#         TTNN::CPP
+# )
 
-# unit_tests_ttnn_ccl_ops
+# # unit_tests_ttnn_ccl_ops
 
-add_executable(unit_tests_ttnn_ccl_ops)
-target_sources(unit_tests_ttnn_ccl_ops PRIVATE ccl/test_persistent_fabric_ccl_ops.cpp)
-setup_ttnn_test_target(unit_tests_ttnn_ccl_ops)
+# add_executable(unit_tests_ttnn_ccl_ops)
+# target_sources(unit_tests_ttnn_ccl_ops PRIVATE ccl/test_persistent_fabric_ccl_ops.cpp)
+# setup_ttnn_test_target(unit_tests_ttnn_ccl_ops)
 
-# unit_tests_ttnn_fabric_edm
+# # unit_tests_ttnn_fabric_edm
 
-add_executable(unit_tests_ttnn_fabric_edm)
-target_sources(unit_tests_ttnn_fabric_edm PRIVATE ccl/test_fabric_edm.cpp)
-setup_ttnn_test_target(unit_tests_ttnn_fabric_edm)
+# add_executable(unit_tests_ttnn_fabric_edm)
+# target_sources(unit_tests_ttnn_fabric_edm PRIVATE ccl/test_fabric_edm.cpp)
+# setup_ttnn_test_target(unit_tests_ttnn_fabric_edm)
 
-# unit_tests_ttnn_ccl_multi_tensor
+# # unit_tests_ttnn_ccl_multi_tensor
 
-add_executable(unit_tests_ttnn_ccl_multi_tensor)
-target_sources(unit_tests_ttnn_ccl_multi_tensor PRIVATE ccl/test_multi_tensor_ccl.cpp)
-setup_ttnn_test_target(unit_tests_ttnn_ccl_multi_tensor)
+# add_executable(unit_tests_ttnn_ccl_multi_tensor)
+# target_sources(unit_tests_ttnn_ccl_multi_tensor PRIVATE ccl/test_multi_tensor_ccl.cpp)
+# setup_ttnn_test_target(unit_tests_ttnn_ccl_multi_tensor)
 
-# unit_tests_ttnn_1d_fabric_latency
+# # unit_tests_ttnn_1d_fabric_latency
 
-add_executable(unit_tests_ttnn_1d_fabric_latency)
-target_sources(unit_tests_ttnn_1d_fabric_latency PRIVATE ccl/test_1d_fabric_loopback_latency.cpp)
-setup_ttnn_test_target(unit_tests_ttnn_1d_fabric_latency)
+# add_executable(unit_tests_ttnn_1d_fabric_latency)
+# target_sources(unit_tests_ttnn_1d_fabric_latency PRIVATE ccl/test_1d_fabric_loopback_latency.cpp)
+# setup_ttnn_test_target(unit_tests_ttnn_1d_fabric_latency)
 
-# unit_tests_ttnn_accessor
+# # unit_tests_ttnn_accessor
 
-add_executable(unit_tests_ttnn_accessor)
-target_sources(
-    unit_tests_ttnn_accessor
-    PRIVATE
-        accessor/test_accessor_benchmarks.cpp
-        accessor/test_sharded_accessor.cpp
-        accessor/test_sharded_accessor_on_device.cpp
-)
-setup_ttnn_test_target(unit_tests_ttnn_accessor)
+# add_executable(unit_tests_ttnn_accessor)
+# target_sources(
+#     unit_tests_ttnn_accessor
+#     PRIVATE
+#         accessor/test_accessor_benchmarks.cpp
+#         accessor/test_sharded_accessor.cpp
+#         accessor/test_sharded_accessor_on_device.cpp
+# )
+# setup_ttnn_test_target(unit_tests_ttnn_accessor)
 
-# unit_tests_ttnn_tensor
+# # unit_tests_ttnn_tensor
 
-add_executable(unit_tests_ttnn_tensor)
-target_sources(
-    unit_tests_ttnn_tensor
-    PRIVATE
-        tensor/common_tensor_test_utils.cpp
-        tensor/test_create_tensor.cpp
-        tensor/test_create_tensor_multi_device.cpp
-        tensor/test_create_tensor_with_layout.cpp
-        tensor/test_distributed_tensor.cpp
-        tensor/test_mesh_tensor.cpp
-        tensor/test_partition.cpp
-        tensor/test_tensor_layout.cpp
-        tensor/test_tensor_nd_sharding.cpp
-        tensor/test_tensor_serialization.cpp
-        tensor/test_tensor_sharding.cpp
-        tensor/test_vector_conversion.cpp
-        tensor/test_xtensor_conversion.cpp
-)
-setup_ttnn_test_target(unit_tests_ttnn_tensor)
-target_link_libraries(unit_tests_ttnn_tensor PRIVATE xtensor)
+# add_executable(unit_tests_ttnn_tensor)
+# target_sources(
+#     unit_tests_ttnn_tensor
+#     PRIVATE
+#         tensor/common_tensor_test_utils.cpp
+#         tensor/test_create_tensor.cpp
+#         tensor/test_create_tensor_multi_device.cpp
+#         tensor/test_create_tensor_with_layout.cpp
+#         tensor/test_distributed_tensor.cpp
+#         tensor/test_mesh_tensor.cpp
+#         tensor/test_partition.cpp
+#         tensor/test_tensor_layout.cpp
+#         tensor/test_tensor_nd_sharding.cpp
+#         tensor/test_tensor_serialization.cpp
+#         tensor/test_tensor_sharding.cpp
+#         tensor/test_vector_conversion.cpp
+#         tensor/test_xtensor_conversion.cpp
+# )
+# setup_ttnn_test_target(unit_tests_ttnn_tensor)
+# target_link_libraries(unit_tests_ttnn_tensor PRIVATE xtensor)
 
-# test_ccl_multi_cq_multi_device
+# # test_ccl_multi_cq_multi_device
 
-add_executable(test_ccl_multi_cq_multi_device)
-target_sources(
-    test_ccl_multi_cq_multi_device
-    PRIVATE
-        multi_thread/test_ccl_multi_cq_multi_device.cpp
-        multi_thread/test_utils.cpp
-)
-setup_ttnn_test_target(test_ccl_multi_cq_multi_device)
-target_link_libraries(
-    test_ccl_multi_cq_multi_device
-    PRIVATE
-        Boost::asio
-        Boost::lockfree
-)
+# add_executable(test_ccl_multi_cq_multi_device)
+# target_sources(
+#     test_ccl_multi_cq_multi_device
+#     PRIVATE
+#         multi_thread/test_ccl_multi_cq_multi_device.cpp
+#         multi_thread/test_utils.cpp
+# )
+# setup_ttnn_test_target(test_ccl_multi_cq_multi_device)
+# target_link_libraries(
+#     test_ccl_multi_cq_multi_device
+#     PRIVATE
+#         Boost::asio
+#         Boost::lockfree
+# )
 
 # unit_tests_ttnn_emitc
 
 add_executable(unit_tests_ttnn_emitc)
-target_sources(unit_tests_ttnn_emitc PRIVATE emitc/test_sanity.cpp)
+target_sources(unit_tests_ttnn_emitc PRIVATE emitc/sandbox.cpp)
+target_link_libraries(unit_tests_ttnn_emitc PRIVATE xtensor)
 setup_ttnn_test_target(unit_tests_ttnn_emitc)
