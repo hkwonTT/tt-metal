@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <iostream>
 #include "hostdevcommon/common_values.hpp"
 #include "emitc.hpp"
 
@@ -10,6 +11,30 @@
 
 namespace sandbox {
 
+
+void printTensor(ttnn::Tensor &tensor, std::string name = "UNKNOWN") {
+  std::cout << "Tensor: " << name << std::endl;
+  std::cout << "  Shape: " << tensor.logical_shape()[0] << ", " << tensor.logical_shape()[1] << std::endl;
+  auto storageType2Str = [](ttnn::StorageType storageType) {
+    switch (storageType) {
+      case ttnn::StorageType::DEVICE:
+        return "DEVICE";
+      case ttnn::StorageType::HOST:
+        return "HOST";
+      case ttnn::StorageType::MULTI_DEVICE_HOST:
+        return "MULTI_DEVICE_HOST";
+    }
+  };
+  std::cout << "  Storage Type: " << storageType2Str(tensor.storage_type()) << std::endl;
+  if (tensor.storage_type() == ttnn::StorageType::MULTI_DEVICE_HOST) {
+    auto bufferShape = std::get<tt::tt_metal::MultiDeviceHostStorage>(tensor.get_storage()).distributed_buffer().shape();
+    std::cout << "  Buffer Shape: " << bufferShape[0] << ", " << bufferShape[1] << std::endl;
+  } else if (tensor.storage_type() == ttnn::StorageType::DEVICE) {
+    auto bufferShape = std::get<tt::tt_metal::DeviceStorage>(tensor.get_storage()).get_mesh_buffer()->device()->shape();
+    std::cout << "  Buffer Shape: " << bufferShape[0] << ", " << bufferShape[1] << std::endl;
+
+  }
+}
 
 ttnn::Tensor aggretateTensors(std::vector<ttnn::Tensor> tensors, const tt::tt_metal::DistributedTensorConfig& config) {
   std::cout << "Aggregating Tensors" << std::endl;
@@ -41,6 +66,41 @@ ttnn::Tensor aggretateTensors(std::vector<ttnn::Tensor> tensors, const tt::tt_me
   }
   return ttnn::distributed::aggregate_as_tensor(tensors, config);
 }
+
+size_t getCoordsCount(ttnn::Tensor tensor) {
+    return std::get<tt::tt_metal::DeviceStorage>(tensor.storage()).coords.size();
+}
+
+ttnn::Tensor showCoordsOnDeviceTensor(ttnn::Tensor shardTensor, std::shared_ptr<ttnn::distributed::MeshDevice> meshDevice, ttnn::GlobalSemaphore semaphore) {
+
+    ttnn::Tensor extractedShardTensor = ttnn::distributed::get_device_tensors(shardTensor)[0];
+    ttnn::Tensor p2pOutputTensor = ttnn::point_to_point(shardTensor, ttnn::MeshCoordinate(0, 0), ttnn::MeshCoordinate(0, 1), ::ttnn::ccl::Topology::Linear, semaphore);
+
+    std::cout << "Tensor sharded : " << getCoordsCount(shardTensor) << std::endl;
+    std::cout << "Tensor from get_device_tensors : " << getCoordsCount(extractedShardTensor) << std::endl;
+    std::cout << "Tensor from p2p : " << getCoordsCount(p2pOutputTensor) << std::endl;
+
+    return shardTensor;
+}
+
+ttnn::Tensor pointToPoint(ttnn::Tensor srcTensor, ttnn::MeshCoordinate srcCoord, ttnn::MeshCoordinate dstCoord, ::ttnn::ccl::Topology topology, ttnn::GlobalSemaphore semaphore) {
+#if 1
+  std::vector<ttnn::Tensor> hostTensors = ttnn::distributed::get_device_tensors(srcTensor);
+  std::vector<ttnn::Tensor> p2pOutputTensors;
+  for (size_t idx = 0; idx < hostTensors.size(); idx++) {
+    
+  }
+    
+    p2pOutputTensors.push_back(p2pOutputTensor);
+  }
+  return ttnn::distributed::aggregate_as_tensor(p2pOutputTensors, srcTensor.distributed_tensor_config());
+
+  
+#else
+  return ttnn::point_to_point(srcTensor, srcCoord, dstCoord, topology, semaphore);  
+#endif
+}
+
 ttnn::Tensor p2PTest(ttnn::Tensor tensor0, std::shared_ptr<ttnn::distributed::MeshDevice> meshDevice) {
   std::cout << "Getting Global Semaphore for Ccl Ops" << std::endl;
   auto semaphore = ttnn::global_semaphore::create_global_semaphore(
@@ -50,13 +110,92 @@ ttnn::Tensor p2PTest(ttnn::Tensor tensor0, std::shared_ptr<ttnn::distributed::Me
       tt::tt_metal::BufferType::L1  // buffer type
   );
   std::cout << "Got Global Semaphore for Ccl Ops" << std::endl;
+  auto full = tensor0.logical_shape()[1];
+  auto half = full / 2;
+  std::cout << "input tensor shape : " << tensor0.logical_shape()[0] << ", " << tensor0.logical_shape()[1] << std::endl;
+  
+  ::ttnn::SmallVector<int32_t> begins({0, 0});
+  ::ttnn::SmallVector<int32_t> ends({256, half});
+  ::ttnn::SmallVector<int32_t> step({1, 1});
+  std::cout << "Slicing 0" << std::endl;
+  ::ttnn::Tensor slice_0 = ::ttnn::slice(tensor0, begins, ends, step);
+
+  begins[1] = half;
+  ends[1] = full;
+  std::cout << "Slicing 1" << std::endl;
+  ::ttnn::Tensor slice_1 = ::ttnn::slice(tensor0, begins, ends, step);
 
   auto coord0 = ttnn::MeshCoordinate(0, 0);
   auto coord1 = ttnn::MeshCoordinate(0, 1);
-  std::cout << "Running Point to Point" << std::endl;
-  ttnn::Tensor organizedTensor = ttnn::point_to_point(tensor0, coord0, coord1, ::ttnn::ccl::Topology::Linear, semaphore);
+
+  std::cout << "get_device_tensors for slice_0" << std::endl;
+  auto tensorsSlice0 = ttnn::distributed::get_device_tensors(slice_0);
+  auto tensorsSlice1 = ttnn::distributed::get_device_tensors(slice_1);
+  for (auto& tensor : tensorsSlice0) {
+    printTensor(tensor, "Slice 0");
+  }
+  for (auto& tensor : tensorsSlice1) {
+    printTensor(tensor, "Slice 1");
+  }
+  ttnn::Tensor split_0_0 = tensorsSlice0[0];
+  std::cout << "Running Point to Point 1 to 0" << std::endl;
+  ttnn::Tensor split_1_0 = ttnn::point_to_point(slice_0, coord1, coord0, ::ttnn::ccl::Topology::Linear, semaphore);
+
+  auto storage_shard = std::get<tt::tt_metal::DeviceStorage>(tensor0.storage());
+  auto storage_get_device_tensor = std::get<tt::tt_metal::DeviceStorage>(split_0_0.storage());
+  auto storage_p2p_tensor = std::get<tt::tt_metal::DeviceStorage>(split_1_0.storage());
+  std::cout << "Tensor from sharding : " << storage_shard.coords.size() << std::endl;
+  std::cout << "Tensor from get_device_tensors : " << storage_get_device_tensor.coords.size() << std::endl;
+  std::cout << "Tensor from p2p : " << storage_p2p_tensor.coords.size() << std::endl;
+
+
+
+  
+  std::cout << "Running Point to Point 0 to 1" << std::endl;
+  ttnn::Tensor split_0_1 = ttnn::point_to_point(slice_1, coord0, coord1, ::ttnn::ccl::Topology::Linear, semaphore);
+  std::cout << "get_device_tensors for slice_1" << std::endl;
+  ttnn::Tensor split_1_1 = tensorsSlice1[1];
   std::cout << "Finished Point to Point" << std::endl;
-  return organizedTensor;
+
+  // aggregating on host
+  ttnn::Tensor split_0_0_h = ttnn::from_device(split_0_0);
+  ttnn::Tensor split_1_0_h = ttnn::from_device(split_1_0);
+  ttnn::Tensor split_0_1_h = ttnn::from_device(split_0_1);
+  ttnn::Tensor split_1_1_h = ttnn::from_device(split_1_1);
+  std::cout << "from_device done" << std::endl;
+  printTensor(split_0_0_h);
+  printTensor(split_1_0_h);
+  printTensor(split_0_1_h);
+  printTensor(split_1_1_h);
+
+  std::cout << "tranforming to host tensor for 0,0" << std::endl;
+  split_0_0_h = ::ttnn::Tensor(tt::tt_metal::host_buffer::get_host_buffer(split_0_0_h),
+                       split_0_0_h.tensor_spec());
+  std::cout << "tranforming to host tensor for 1,1" << std::endl;
+  split_1_1_h = ::ttnn::Tensor(tt::tt_metal::host_buffer::get_host_buffer(split_1_1_h),
+                       split_1_1_h.tensor_spec());
+  std::cout << "tranforming to host tensor for 1,0" << std::endl;
+  split_1_0_h = ::ttnn::Tensor(tt::tt_metal::host_buffer::get_host_buffer(split_1_0_h),
+                       split_1_0_h.tensor_spec());
+  std::cout << "tranforming to host tensor for 0,1" << std::endl;
+  split_0_1_h = ::ttnn::Tensor(tt::tt_metal::host_buffer::get_host_buffer(split_0_1_h),
+                       split_0_1_h.tensor_spec());
+
+  ttnn::Tensor split_0_h = ttnn::distributed::aggregate_as_tensor({split_0_0_h, split_0_1_h}, ::tt::tt_metal::AllGatherTensor());
+  std::cout << "aggregate 0 done" << std::endl;
+  ttnn::Tensor split_1_h = ttnn::distributed::aggregate_as_tensor({split_1_0_h, split_1_1_h}, ::tt::tt_metal::AllGatherTensor());
+  std::cout << "aggregate 1 done" << std::endl;
+  ttnn::Tensor split_0 = ttnn::to_device(split_0_h, meshDevice.get(), std::nullopt);
+  ttnn::Tensor split_1 = ttnn::to_device(split_1_h, meshDevice.get(), std::nullopt);
+  std::cout << "to_device done" << std::endl;
+
+  std::vector splits = {split_0, split_1};
+
+  ttnn::Tensor output = ttnn::concat(splits, 1, std::nullopt);
+  std::cout << "concat done" << std::endl;
+
+  
+  return output;
 }
 
 ttnn::Tensor sandboxFunction(ttnn::Tensor tensor0, ttnn::Tensor tensor1, std::shared_ptr<ttnn::distributed::MeshDevice> meshDevice) {
@@ -154,22 +293,22 @@ ttnn::Tensor unshardTensor(ttnn::Tensor shardedTensor, std::shared_ptr<ttnn::dis
   
   std::vector<::ttnn::Tensor> input_tensors =
       ::ttnn::distributed::get_device_tensors(shardedHost);
-  size_t stride = 1;
   int targetDim = 1;
-  size_t iteration = 2;
-  std::vector<::ttnn::Tensor> target_tensors;
-  for (size_t i = 0; i < iteration; ++i) {
-    target_tensors.push_back(input_tensors[i * stride]);
-  }
-  return ::ttnn::experimental::xtensor::concat(target_tensors, targetDim);
+  return ::ttnn::experimental::xtensor::concat(input_tensors, targetDim);
 }
 void sandbox(std::shared_ptr<ttnn::distributed::MeshDevice> meshDevice) {
-  ttnn::Tensor inputTensor = create_inputs_for_testing();
-  ttnn::Tensor shardedInput1 = shardTensor(inputTensor, meshDevice);
-  // ttnn::Tensor shardedInput2 = shardTensor(inputTensor, meshDevice);
-  // ttnn::Tensor shardedOutput = sandboxFunction(shardedInput1, shardedInput2, meshDevice);
-  ttnn::Tensor shardedOutput = p2PTest(shardedInput1, meshDevice);
-  ttnn::Tensor outputTensor = unshardTensor(shardedOutput, meshDevice);
+    ttnn::GlobalSemaphore semaphore = ttnn::global_semaphore::create_global_semaphore(
+        meshDevice.get(),
+        meshDevice.get()->worker_cores(tt::tt_metal::HalProgrammableCoreType::TENSIX, tt::tt_metal::SubDeviceId{0}),
+        0,
+        tt::tt_metal::BufferType::L1);
+    ttnn::Tensor inputTensor = create_inputs_for_testing();
+    ttnn::Tensor shardedInput1 = shardTensor(inputTensor, meshDevice);
+    // ttnn::Tensor shardedInput2 = shardTensor(inputTensor, meshDevice);
+    // ttnn::Tensor shardedOutput = sandboxFunction(shardedInput1, shardedInput2, meshDevice);
+    // ttnn::Tensor shardedOutput = p2PTest(shardedInput1, meshDevice);
+    ttnn::Tensor shardedOutput = showCoordsOnDeviceTensor(shardedInput1, meshDevice, semaphore);
+    ttnn::Tensor outputTensor = unshardTensor(shardedOutput, meshDevice);
 }
 
 TEST(EmitC, Sandbox) {

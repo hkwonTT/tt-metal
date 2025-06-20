@@ -69,7 +69,10 @@ std::vector<size_t> DistributedHostBuffer::get_populated_local_shard_indices() c
     indices.reserve(local_shards_.values().size());
     for (size_t i = 0; i < local_shards_.values().size(); ++i) {
         if (local_shards_.values()[i].is_populated) {
+            log_info(LogAlways, "Shard is populated");
             indices.push_back(i);
+        } else {
+            log_info(LogAlways, "Shard is NOT populated");
         }
     }
     return indices;
